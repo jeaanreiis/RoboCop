@@ -1,7 +1,6 @@
 import re
 import os
 import time
-import requests
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -11,6 +10,7 @@ from PIL import Image
 import pytesseract
 import cv2
 import numpy as np
+
 
 def ler_planilha():
     diretorio = os.path.dirname(os.path.abspath(__file__))
@@ -97,33 +97,39 @@ def visualizar_doc(driver):
     btn_visualizar = driver.find_element(By.ID, "mainForm:btnVisualizar")
     btn_visualizar.click()
 
-def imprimir(driver):
-    btn_imprimir = driver.find_element(By.ID, "mainForm:btImprimir4")
-    btn_imprimir.click()
+def printscr_pagina(driver, cnpj):
+    time.sleep(2)
 
-def baixar_pdf(driver):
-    # TODO: Criar function para baixar pdf via request cookies
-    pass
+    diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+
+    nome_arquivo = f"cert_{cnpj}.png"
+    caminho_completo = os.path.join(diretorio_atual, "cert_png", nome_arquivo)
+
+    os.makedirs(os.path.join(diretorio_atual, "cert_png"), exist_ok=True)
+
+    driver.save_screenshot(caminho_completo)
+   
 
 def main():
 
     driver = webdriver.Chrome()
-    driver.implicitly_wait(5)
+    driver.set_window_size(795, 1123) # siluma tamanho A4
+    driver.implicitly_wait(5) 
 
     df = ler_planilha()
 
     for cnpj in df['CNPJ']:
         try:
             acessar_url_caixa(driver)
-            preencher_inscricao(driver, limpar_cnpj(cnpj))
+            cnpj = limpar_cnpj(cnpj)  # Limpa o CNPJ do CPF/CNPJ
+            preencher_inscricao(driver, cnpj)
             pega_captcha(driver)  # Captura o CAPTCHA
             preencher_captcha(driver, quebra_captcha())  # Preenche o CAPTCHA
             consultar_cnpj(driver)  # Consulta o CNPJ
             valida_captcha(driver) 
             consulta_historico(driver)
             visualizar_doc(driver)
-            imprimir(driver)
-            time.sleep(5)
+            printscr_pagina(driver, cnpj)
         finally:
             driver.quit()
 
